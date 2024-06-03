@@ -1,8 +1,7 @@
+
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import {GlobalStateProvider} from "@/app/privoders/global-state";
-import {rangeArray} from "@/app/lib/helper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,16 +15,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const globalState = {
-    years: rangeArray(2024, 2104),
-  };
-
   return (
     <html lang="en">
       <body className={inter.className}>
-        <GlobalStateProvider globalState={globalState}>
-          {children}
-        </GlobalStateProvider>
+        {children}
       </body>
     </html>
   );

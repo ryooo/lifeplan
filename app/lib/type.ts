@@ -14,20 +14,32 @@ export type LifeEvent = {
 }
 
 export type Family = {
-  user: Adult;
+  user?: Adult;
   partner?: Adult;
   children: Child[];
 }
 
-export type Adult = {
+export type Person = {
   age: Age;
-  retireAge: Age;
   lifeEvents: LifeEvent[];
+  assets: Asset[];
 }
 
-export type Child = {
-  age: Age;
-  lifeEvents: LifeEvent[];
+export type Adult = Person & {
+  retireAge?: Age;
+}
+
+export type Child = Person;
+
+export type Asset = {
+  type: string;
+  year: number;
+  balance: number;
+  interest: number;
+}
+
+export type BankAsset = Asset & {
+  type: 'bank',
 }
 
 export const ASSET_COLOR = '#6b78b4'
