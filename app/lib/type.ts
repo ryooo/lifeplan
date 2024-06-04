@@ -1,3 +1,5 @@
+import {YEARS} from "@/app/lib/helper";
+import {getAllMembers} from "@/app/_components/family";
 
 export type Age = number;
 export type Year = number;
@@ -20,13 +22,13 @@ export type Family = {
   user?: Adult;
   partner?: Adult;
   children: Child[];
+  assets: Asset[];
 }
 
 export type Person = {
   id: string;
   age: Age;
   lifeEvents: LifeEvent[];
-  assets: Asset[];
 }
 
 export type Adult = Person & {
@@ -60,4 +62,79 @@ export const getPerson = (family: Family, personId: string): Person | undefined 
   }
   const index = Number(personId.replace("child", "")) - 1
   return family.children[index]
+}
+
+
+export const calcAssetMigratedCashFlow = (assets: Asset[], familyCashFlow: FamilyCashFlow): void => {
+  for (const asset of assets) {
+    asset.migratedCashFlows = {}
+    for (const year of YEARS) {
+      const val = asset.cashFlows[year] || 0
+      if (asset.name === '預金') {
+        // キャッシュフローの結果はまず銀行残高に形状される
+        asset.migratedCashFlows[year] = val + (familyCashFlow.income[year] - familyCashFlow.outcome[year])
+      } else {
+        asset.migratedCashFlows[year] = val
+      }
+    }
+
+    let lastYearVal = 0;
+    asset.balances = {}
+    for (const year of YEARS) {
+      const val = (lastYearVal * (asset.interest || 1)) + (asset.migratedCashFlows![year] || 0)
+      asset.balances[year] = val
+      lastYearVal = val
+    }
+  }
+}
+
+type FamilyCashFlow = {
+  income: number[],
+  outcome: number[],
+}
+
+export const calcFamilyCashFlow = (family: Family): FamilyCashFlow => {
+  const data: FamilyCashFlow = {
+    income: [],
+    outcome: [],
+  };
+  const members = getAllMembers(family)
+  for (const year of YEARS) {
+    for (const person of members) {
+      const income = totalIncome(year, person)
+      const outcome = totalOutcome(year, person)
+      data.income[year] ||= 0
+      data.outcome[year] ||= 0
+      data.income[year] += income
+      data.outcome[year] += outcome
+    }
+  }
+  return data
+}
+
+export const totalIncome = (year: Year, person: Person): number => {
+  let total = 0;
+  for (const lifeEvent of person.lifeEvents ?? []) {
+    const cashFlow = (lifeEvent.cashFlows[year] || 0)
+    if (cashFlow > 0) total += cashFlow
+  }
+  return total
+}
+
+export const totalOutcome = (year: Year, person: Person): number => {
+  let total = 0;
+  for (const lifeEvent of person.lifeEvents ?? []) {
+    const cashFlow = (lifeEvent.cashFlows[year] || 0)
+    if (cashFlow < 0) total += -1 * cashFlow
+  }
+  return total
+}
+
+
+export const totalAssets = (year: Year, family: Family): number => {
+  let total = 0;
+  for (const asset of family.assets ?? []) {
+    total += (asset.balances?.[year] || 0)
+  }
+  return total
 }

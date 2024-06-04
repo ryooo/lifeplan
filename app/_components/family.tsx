@@ -1,10 +1,8 @@
-import {useContext, useState} from "react";
+import {useContext, useEffect, useState} from "react";
 import {familyContext} from "@/app/privoders/family";
 import {LifeEventComponent} from "@/app/_components/life-event";
 import {Adult, Family, Person} from "@/app/lib/type";
-import {AssetComponent, calcAssetMigratedCashFlow, calcTotalCashFlow} from "@/app/_components/assets";
-import {last} from "@/app/lib/helper";
-import {yearsContext} from "@/app/privoders/years";
+import {AssetComponent} from "@/app/_components/assets";
 
 export const FamilyComponent = () => {
   const {family} = useContext(familyContext);
@@ -14,6 +12,13 @@ export const FamilyComponent = () => {
       {family.user && <PersonComponent key={family.user.id} person={family.user} familyIds={familyIds} />}
       {family.partner && <PersonComponent key={family.partner.id} person={family.partner} familyIds={familyIds} />}
       {family.children.map(c => <PersonComponent key={c.id} person={c} familyIds={familyIds} />)}
+      <div>
+          {
+            (family.assets || []).map((asset, i) => {
+              return <AssetComponent key={i} assetIndex={i} asset={family.assets[i]} />
+            })
+          }
+      </div>
     </>
   )
 }
@@ -24,12 +29,9 @@ type Props = {
 }
 
 const PersonComponent = ({person, familyIds}: Props) => {
-  const {years} = useContext(yearsContext);
   const [opened, setOpened] = useState(false)
   const isFirst = familyIds.indexOf(person.id) === 0
   const isLast = familyIds.indexOf(person.id) === 3
-  const totalCashFlow = calcTotalCashFlow(years, person)
-  calcAssetMigratedCashFlow(years, person.assets, totalCashFlow)
   return (
     <div>
       <h2>
@@ -58,11 +60,6 @@ const PersonComponent = ({person, familyIds}: Props) => {
               return <LifeEventComponent key={i} eventIndex={i} personId={person.id}/>
             })
           }
-          {
-            person.assets.map((asset, i) => {
-              return <AssetComponent key={i} personId={person.id} assetIndex={i} />
-            })
-          }
         </div>
       </div>
     </div>
@@ -70,8 +67,13 @@ const PersonComponent = ({person, familyIds}: Props) => {
 }
 
 const getFamilyIds = (family: Family): string[] => {
-  const ids = [family.user, family.partner, ...family.children]
-    .map(p => p?.id)
-    .filter((e): e is string => Boolean(e)) // compact
-  return ids
+  return getAllMembers(family).map(p => p?.id)
 };
+
+export const getAllMembers = (family: Family): Person[] => {
+  const members: Person[] = []
+  if (family.user) members.push(family.user)
+  if (family.partner) members.push(family.partner)
+  members.push(...family.children)
+  return members
+}

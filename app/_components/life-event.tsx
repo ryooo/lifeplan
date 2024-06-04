@@ -1,7 +1,5 @@
 "use client"
 import {
-  ASSET_COLOR,
-  ASSET_COLOR_BG,
   CashFlows, getPerson,
   INCOME_COLOR,
   INCOME_COLOR_BG, LifeEvent,
@@ -13,8 +11,8 @@ import React, {useCallback, useContext, useEffect, useRef, useState} from "react
 
 import {ChartData, ChartOptions} from "chart.js";
 import {Line} from "react-chartjs-2";
-import {useYears, yearsContext} from "@/app/privoders/years";
 import {familyContext} from "@/app/privoders/family";
+import {YEARS} from "@/app/lib/helper";
 
 
 type Props = {
@@ -23,7 +21,6 @@ type Props = {
 }
 
 export const LifeEventComponent = ({eventIndex, personId}: Props) => {
-  const { years } = useContext(yearsContext);
   const {family, setFamily} = useContext(familyContext);
   const [data, setData] = useState<ChartData<'line'> | null>(null);
 
@@ -32,13 +29,13 @@ export const LifeEventComponent = ({eventIndex, personId}: Props) => {
   const onDragEnd = useCallback((index: number, val: number): void => {
     const newFamily = { ...family }
     const person = getPerson(newFamily, personId)!
-    const year = years[index];
+    const year = YEARS[index];
     person.lifeEvents[eventIndex].cashFlows[year] = val;
     setFamily(newFamily)
   }, [])
 
   useEffect(() => {
-    setData(createData(years, event.cashFlows))
+    setData(createData(event.cashFlows))
   }, [event])
 
   return (
@@ -53,10 +50,10 @@ export const LifeEventComponent = ({eventIndex, personId}: Props) => {
   )
 }
 
-const cashFlowsToData = (years: Year[], cf: CashFlows): number[] => {
+const cashFlowsToData = (cf: CashFlows): number[] => {
   const income: number[] = []
 
-  for (const year of years) {
+  for (const year of YEARS) {
     const val = cf[year] || 0
     income.push(val)
   }
@@ -96,10 +93,10 @@ const createOptions = (
   }
 }
 
-const createData = (years: Year[], cashFlows: CashFlows): ChartData<'line'> => {
-  const data = cashFlowsToData(years, cashFlows);
+const createData = (cashFlows: CashFlows): ChartData<'line'> => {
+  const data = cashFlowsToData(cashFlows);
   return {
-    labels: years,
+    labels: YEARS,
     datasets: [
       {
         type: 'line' as const,
