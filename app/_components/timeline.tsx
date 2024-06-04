@@ -16,7 +16,7 @@ import { Chart } from 'react-chartjs-2';
 import {faker} from "@faker-js/faker";
 import {
   ASSET_COLOR,
-  ASSET_COLOR_BG,
+  ASSET_COLOR_BG, ASSET_MINUS_COLOR,
   CashFlows,
   Family,
   INCOME_COLOR,
@@ -59,12 +59,20 @@ export const Timeline = () => {
         yAxisID: 'yAxisR',
         label: '資産残高',
         backgroundColor: ASSET_COLOR_BG,
-        borderColor: ASSET_COLOR,
         borderWidth: 3,
         pointStyle: false,
         fill: false,
         tension: 0.3,
         data: familyData.asset,
+        gradient: {
+          borderColor: {
+            axis: 'y',
+            colors: {
+              '-1': ASSET_MINUS_COLOR,
+              0: ASSET_COLOR,
+            }
+          }
+        },
       },
       {
         type: 'bar' as const,

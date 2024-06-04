@@ -6,10 +6,11 @@ import {familyContext, useFamily} from "./privoders/family";
 import {rangeArray} from "@/app/lib/helper";
 import {FamilyComponent} from "@/app/_components/family";
 import {
-  createInitialBankAsset,
+  createFlatCostCashFlows,
+  createBankAsset,
   createLifeCostCashFlows,
   createPensionCashFlows,
-  createSalaryCashFlows
+  createSalaryCashFlows, createStockAsset
 } from "@/app/lib/query";
 
 export default function Home() {
@@ -32,7 +33,7 @@ export default function Home() {
           },
           {
             name: '年金',
-            cashFlows: createPensionCashFlows(startYear, endYear, 40, 65, 7 * 12)
+            cashFlows: createPensionCashFlows(startYear, endYear, 40, 65, 7)
           },
           {
             name: '生活費',
@@ -40,10 +41,12 @@ export default function Home() {
           },
         ],
         assets: [
-          createInitialBankAsset(yearsCtx.years, [
-            {year: startYear, val: 3000},
-            {year: startYear + 25, val: 2000},
+          createBankAsset(yearsCtx.years, [
+            {year: startYear, val: 1000},
           ]),
+          createStockAsset(yearsCtx.years, 1.04, [
+            {year: startYear, val: 3000},
+          ])
         ],
       },
       partner: {
@@ -57,7 +60,7 @@ export default function Home() {
           },
           {
             name: '年金',
-            cashFlows: createPensionCashFlows(startYear, endYear, 38, 65, 7 * 12)
+            cashFlows: createPensionCashFlows(startYear, endYear, 38, 65, 7)
           },
           {
             name: '生活費',
@@ -65,9 +68,50 @@ export default function Home() {
           },
         ],
         assets: [
+          createBankAsset(yearsCtx.years, [
+          ]),
         ],
       },
-      children: [],
+      children: [
+        {
+          id: "child1",
+          age: 8,
+          lifeEvents: [
+            {
+              name: '生活費',
+              cashFlows: createFlatCostCashFlows(startYear, 8, 8, 22, 10)
+            },
+            {
+              name: '高校',
+              cashFlows: createFlatCostCashFlows(startYear, 8, 15, 17, 5)
+            },
+            {
+              name: '大学',
+              cashFlows: createFlatCostCashFlows(startYear, 8, 18, 22, 15)
+            },
+          ],
+          assets: [],
+        },
+        {
+          id: "child2",
+          age: 11,
+          lifeEvents: [
+            {
+              name: '生活費',
+              cashFlows: createFlatCostCashFlows(startYear, 11, 11, 22, 10)
+            },
+            {
+              name: '高校',
+              cashFlows: createFlatCostCashFlows(startYear, 11, 15, 17, 5)
+            },
+            {
+              name: '大学',
+              cashFlows: createFlatCostCashFlows(startYear, 11, 18, 22, 15)
+            },
+          ],
+          assets: [],
+        },
+      ],
     })
   }, []);
 

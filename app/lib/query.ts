@@ -19,7 +19,7 @@ export const createPensionCashFlows = (startYear: Year, endYear: Year, age: numb
   const cashFlows: CashFlows = {};
   const retireYear = startYear + (retireAge - age)
   for (let i = retireYear; i < endYear; i++) {
-    cashFlows[i] = pension;
+    cashFlows[i] = pension * 12
   }
   return cashFlows
 }
@@ -38,7 +38,17 @@ export const createLifeCostCashFlows = (startYear: Year, endYear: Year, age: num
   return cashFlows
 }
 
-export const createInitialBankAsset = (years: Year[], incomes: {year: number, val: number}[]): Asset => {
+export const createFlatCostCashFlows = (currentYear: Year, age: number, startAge: number, endAge: number | null, expence: number): CashFlows => {
+  const cashFlows: CashFlows = {};
+  const startYear = currentYear + (startAge - age)
+  const endYear = endAge ? currentYear + (endAge - age) : -1
+  for (let i = startYear; i < endYear; i++) {
+    cashFlows[i] = -1 * expence * 12
+  }
+  return cashFlows
+}
+
+export const createBankAsset = (years: Year[], incomes: {year: number, val: number}[]): Asset => {
   const cashFlows: CashFlows = {}
   for (const year of years) {
     cashFlows[year] = 0
@@ -47,7 +57,22 @@ export const createInitialBankAsset = (years: Year[], incomes: {year: number, va
     cashFlows[income.year] = income.val
   }
   return {
-    name: 'bank',
+    name: '銀行入出金',
+    cashFlows
+  }
+}
+
+export const createStockAsset = (years: Year[], interest: number, incomes: {year: number, val: number}[]): Asset => {
+  const cashFlows: CashFlows = {}
+  for (const year of years) {
+    cashFlows[year] = 0
+  }
+  for (const income of incomes) {
+    cashFlows[income.year] = income.val
+  }
+  return {
+    name: '運用資金',
+    interest,
     cashFlows
   }
 }

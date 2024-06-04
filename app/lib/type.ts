@@ -33,11 +33,13 @@ export type Child = Person;
 
 export type Asset = {
   name: string;
+  interest?: number;
   cashFlows: CashFlows;
 }
 
 export const ASSET_COLOR = '#6b78b4'
 export const ASSET_COLOR_BG = '#6b78b433'
+export const ASSET_MINUS_COLOR = '#fa8888'
 export const INCOME_COLOR = '#ffca00'
 export const INCOME_COLOR_BG = '#ffca0033'
 export const OUTCOME_COLOR = '#cccccc'
@@ -50,6 +52,6 @@ export const getPerson = (family: Family, personId: string): Person | undefined 
     case "partner":
       return family.partner;
   }
-  const index = Number(personId.replace("child", ""))
+  const index = Number(personId.replace("child", "")) - 1
   return family.children[index]
 }

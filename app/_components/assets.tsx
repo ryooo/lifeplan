@@ -21,17 +21,18 @@ import {BalanceSheet, calcBalanceSheet} from "@/app/_components/timeline";
 
 type Props = {
   personId: string;
+  assetIndex: number;
 }
 
-export const AssetsComponent = ({personId}: Props) => {
-  const { years } = useContext(yearsContext);
+export const AssetComponent = ({personId, assetIndex}: Props) => {
+  const {years} = useContext(yearsContext);
   const {family, setFamily} = useContext(familyContext);
   const [data, setData] = useState<ChartData<'line'> | null>(null);
 
-  const onDragEnd = useCallback((datasetIndex: number, index: number, val: number): void => {
-    const newFamily = { ...family }
+  const onDragEnd = useCallback((index: number, val: number): void => {
+    const newFamily = {...family}
     const person = getPerson(newFamily, personId)!
-    const asset = person.assets[datasetIndex]
+    const asset = person.assets[assetIndex]
     const year = years[index];
     asset.cashFlows[year] = val
     setFamily(newFamily)
@@ -39,14 +40,14 @@ export const AssetsComponent = ({personId}: Props) => {
 
   useEffect(() => {
     const person = getPerson(family, personId)!
-    setData(createData(years, person))
+    setData(createData(years, person, assetIndex))
   }, [family])
 
   return (
     <>
       <div>資産推移</div>
       <div className="h-52">
-        {data && <Line data={data} options={createOptions(data, onDragEnd)} height="200" width="100%"/> }
+        {data && <Line data={data} options={createOptions(data, onDragEnd)} height="200" width="100%"/>}
       </div>
     </>
   )
@@ -54,7 +55,7 @@ export const AssetsComponent = ({personId}: Props) => {
 
 const createOptions = (
   data: ChartData<"line">,
-  onDragEnd: (datasetIndex: number, index: number, val: number) => void,
+  onDragEnd: (index: number, val: number) => void,
 ): ChartOptions<'line'> => {
   const max = Math.max(...(data.datasets[0].data as number[]), 0)
   const min = Math.min(...(data.datasets[0].data as number[]), 0)
@@ -83,43 +84,40 @@ const createOptions = (
         round: -1,
         showTooltip: true,
         onDragEnd: (e: any, datasetIndex: any, index: any, value: any) => {
-          onDragEnd(datasetIndex, index, value);
+          onDragEnd(index, value);
         },
       },
     }
   }
 }
 
-const createData = (years: Year[], person: Person): ChartData<'line'> => {
-  const bs = calcBalanceSheet(years, person)
-  const assetsData = assetsToData(years, person.assets);
-  const total = totalAssetToData(years, bs)
-  const datasets: ChartDataset<'line'>[] = assetsData.map(c => {
-    return {
+const createData = (years: Year[], person: Person, assetIndex: number): ChartData<'line'> => {
+  const assetFlowData = assetToFlowData(years, person.assets[assetIndex]);
+  const assetStockData = assetToStockData(years, person.assets[assetIndex]);
+  const datasets: ChartDataset<'line'>[] = [{
       type: 'line' as const,
       yAxisID: 'yAxisL',
-      label: c.name,
+      label: assetFlowData.name,
       borderWidth: 1,
       fill: true,
       stepped: true,
-      data: c.data,
+      data: assetFlowData.data,
       pointHitRadius: 25,
       borderColor: INCOME_COLOR,
       backgroundColor: INCOME_COLOR_BG,
-    }
-  })
-  datasets.push({
-      type: 'line' as const,
-      yAxisID: 'yAxisR',
-      label: total.name,
-      borderWidth: 1,
-      stepped: false,
-      data: total.data,
-      pointStyle: false,
-      fill: false,
-      borderColor: ASSET_COLOR,
-      backgroundColor: ASSET_COLOR_BG,
-    })
+  },
+  {
+    type: 'line' as const,
+    yAxisID: 'yAxisR',
+    label: assetStockData.name,
+    borderWidth: 1,
+    stepped: false,
+    data: assetStockData.data,
+    pointStyle: false,
+    fill: false,
+    borderColor: ASSET_COLOR,
+    backgroundColor: ASSET_COLOR_BG,
+  }]
   return {
     labels: years,
     datasets: datasets,
@@ -127,32 +125,31 @@ const createData = (years: Year[], person: Person): ChartData<'line'> => {
 }
 
 type AssetsData = {
-    name: string;
-    data: number[]
-  }
-
-const assetsToData = (years: Year[], assets: Asset[]): AssetsData[] => {
-  const datum: AssetsData[] = []
-  for (const asset of assets) {
-    const data: number[] = []
-    for (const year of years) {
-      data.push(asset.cashFlows[year] || 0)
-    }
-    datum.push({
-      name: asset.name,
-      data,
-    })
-  }
-  return datum
+  name: string;
+  data: number[]
 }
 
-const totalAssetToData = (years: Year[], bs: BalanceSheet): AssetsData => {
-  const total: AssetsData = {
-    name: 'total',
-    data: [],
-  }
+const assetToFlowData = (years: Year[], asset: Asset): AssetsData => {
+  const data: number[] = []
   for (const year of years) {
-    total.data.push((bs.asset[year] || 0))
+    data.push(asset.cashFlows[year] || 0)
   }
-  return total
+  return {
+    name: asset.name,
+    data,
+  }
+}
+
+const assetToStockData = (years: Year[], asset: Asset): AssetsData => {
+  const data: number[] = []
+  let lastYearVal = 0;
+  for (const year of years) {
+    const val = (lastYearVal * (asset.interest || 1)) + (asset.cashFlows[year] || 0)
+    data.push(val)
+    lastYearVal = val
+  }
+  return {
+    name: `${asset.name}(残高)`,
+    data,
+  }
 }
