@@ -2,8 +2,8 @@
 import {
   Asset,
   ASSET_COLOR,
-  ASSET_COLOR_BG,
-  CashFlows, getPerson,
+  ASSET_COLOR_BG, Balances,
+  CashFlows, Family, getPerson,
   INCOME_COLOR,
   INCOME_COLOR_BG, LifeEvent,
   OUTCOME_COLOR,
@@ -16,7 +16,6 @@ import {ChartData, ChartDataset, ChartOptions} from "chart.js";
 import {Line} from "react-chartjs-2";
 import {useYears, yearsContext} from "@/app/privoders/years";
 import {familyContext} from "@/app/privoders/family";
-import {BalanceSheet, calcBalanceSheet} from "@/app/_components/timeline";
 
 
 type Props = {
@@ -92,16 +91,15 @@ const createOptions = (
 }
 
 const createData = (years: Year[], person: Person, assetIndex: number): ChartData<'line'> => {
-  const assetFlowData = assetToFlowData(years, person.assets[assetIndex]);
-  const assetStockData = assetToStockData(years, person.assets[assetIndex]);
+  calcAssetBalances(years, person.assets[assetIndex]);
   const datasets: ChartDataset<'line'>[] = [{
       type: 'line' as const,
       yAxisID: 'yAxisL',
-      label: assetFlowData.name,
+      label: person.assets[assetIndex].name,
       borderWidth: 1,
       fill: true,
       stepped: true,
-      data: assetFlowData.data,
+      data: assetCashFlowsToData(years, person.assets[assetIndex]),
       pointHitRadius: 25,
       borderColor: INCOME_COLOR,
       backgroundColor: INCOME_COLOR_BG,
@@ -109,10 +107,10 @@ const createData = (years: Year[], person: Person, assetIndex: number): ChartDat
   {
     type: 'line' as const,
     yAxisID: 'yAxisR',
-    label: assetStockData.name,
+    label: `${person.assets[assetIndex].name}(残高)`,
     borderWidth: 1,
     stepped: false,
-    data: assetStockData.data,
+    data: assetBalancesToData(years, person.assets[assetIndex]),
     pointStyle: false,
     fill: false,
     borderColor: ASSET_COLOR,
@@ -124,32 +122,144 @@ const createData = (years: Year[], person: Person, assetIndex: number): ChartDat
   }
 }
 
-type AssetsData = {
-  name: string;
-  data: number[]
+const assetCashFlowsToData = (years: Year[], asset: Asset): number[] => {
+  return years.map(y => asset.cashFlows[y] || 0)
+}
+const assetBalancesToData = (years: Year[], stockData: Asset): number[] => {
+  return years.map(y => stockData.balances?.[y] || 0)
 }
 
-const assetToFlowData = (years: Year[], asset: Asset): AssetsData => {
-  const data: number[] = []
-  for (const year of years) {
-    data.push(asset.cashFlows[year] || 0)
-  }
-  return {
-    name: asset.name,
-    data,
+export const calcAssetMigratedCashFlow = (years: Year[], assets: Asset[], totalCashFlow: TotalCashFlow): void => {
+  for (const asset of assets) {
+    asset.migratedCashFlows = {}
+    for (const year of years) {
+      const val = asset.cashFlows[year] || 0
+      if (asset.name === '銀行入出金') {
+        // キャッシュフローの結果はまず銀行残高に形状される
+        asset.migratedCashFlows[year] = val + (totalCashFlow.income[year] - totalCashFlow.outcome[year])
+      } else {
+        asset.migratedCashFlows[year] = val
+      }
+    }
   }
 }
 
-const assetToStockData = (years: Year[], asset: Asset): AssetsData => {
-  const data: number[] = []
+export const calcAssetBalances = (years: Year[], asset: Asset): void => {
   let lastYearVal = 0;
+  asset.balances = {}
   for (const year of years) {
-    const val = (lastYearVal * (asset.interest || 1)) + (asset.cashFlows[year] || 0)
-    data.push(val)
+    const val = (lastYearVal * (asset.interest || 1)) + (asset.migratedCashFlows![year] || 0)
+    asset.balances[year] = val
     lastYearVal = val
   }
-  return {
-    name: `${asset.name}(残高)`,
-    data,
+}
+
+type TotalCashFlow = {
+    income: number[],
+    outcome: number[],
   }
+
+export const calcTotalCashFlow = (years: Year[], person: Person): TotalCashFlow => {
+  const data: TotalCashFlow = {
+    income: [],
+    outcome: [],
+  };
+  for (let i = 0; i < years.length; i++) {
+    const year = years[i]
+    const income = totalIncome(year, person)
+    const outcome = totalOutcome(year, person)
+    data.income[year] = income
+    data.outcome[year] = outcome
+  }
+  return data
+}
+
+export const totalIncome = (year: Year, person: Person): number => {
+  let total = 0;
+  for (const lifeEvent of person.lifeEvents ?? []) {
+    const cashFlow = (lifeEvent.cashFlows[year] || 0)
+    if (cashFlow > 0) total += cashFlow
+  }
+  return total
+}
+
+export const totalOutcome = (year: Year, person: Person): number => {
+  let total = 0;
+  for (const lifeEvent of person.lifeEvents ?? []) {
+    const cashFlow = (lifeEvent.cashFlows[year] || 0)
+    if (cashFlow < 0) total +=  -1 * cashFlow
+  }
+  return total
+}
+
+
+export type BalanceSheet = {
+  income: CashFlows,
+  outcome: CashFlows,
+  asset: CashFlows,
+}
+type PersonBalanceSheet = BalanceSheet;
+type FamilyBalanceSheet = BalanceSheet;
+
+type FamilyData = {
+  income: number[],
+  outcome: number[],
+  asset: number[],
+}
+
+export const calcBalanceSheet = (years: Year[], person: Person): PersonBalanceSheet => {
+  const data: PersonBalanceSheet = {
+    income: [],
+    outcome: [],
+    asset: [],
+  };
+  let lastTotalAsset = 0;
+  for (let i = 0; i < years.length; i++) {
+    const year = years[i]
+    const income = totalIncome(year, person)
+    const outcome = totalOutcome(year, person)
+    data.income[year] = income
+    data.outcome[year] = outcome
+    data.asset[year] = lastTotalAsset + 1 + income - outcome
+    lastTotalAsset = data.asset[year]
+  }
+  return data
+}
+
+export const calcFamilyBalanceSheet = (years: Year[], family: Family): FamilyBalanceSheet => {
+  const data: PersonBalanceSheet = {
+    income: [],
+    outcome: [],
+    asset: [],
+  };
+  const balanceSheets: PersonBalanceSheet[] = []
+  if (family.user) {
+    balanceSheets.push(calcBalanceSheet(years, family.user))
+  }
+  if (family.partner) {
+    balanceSheets.push(calcBalanceSheet(years, family.partner))
+  }
+  for (const child of family.children) {
+    balanceSheets.push(calcBalanceSheet(years, child))
+  }
+  for (let i = 0; i < years.length; i++) {
+    const year = years[i]
+    data.income[year] ??= 0
+    data.outcome[year] ??= 0
+    data.asset[year] ??= 0
+    for (const balanceSheet of balanceSheets) {
+      data.income[year] += balanceSheet.income[year]
+      data.outcome[year] += balanceSheet.outcome[year]
+      data.asset[year] += balanceSheet.asset[year]
+    }
+  }
+  return data
+}
+
+export const familyBsToData = (years: Year[], familyBs: FamilyBalanceSheet): FamilyData => {
+  return {
+    income: years.map(y => familyBs.income[y] || 0),
+    outcome: years.map(y => familyBs.outcome[y] || 0),
+    asset: years.map(y => familyBs.asset[y] || 0),
+  };
 }

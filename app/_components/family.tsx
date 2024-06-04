@@ -2,8 +2,9 @@ import {useContext, useState} from "react";
 import {familyContext} from "@/app/privoders/family";
 import {LifeEventComponent} from "@/app/_components/life-event";
 import {Adult, Family, Person} from "@/app/lib/type";
-import {AssetComponent} from "@/app/_components/assets";
+import {AssetComponent, calcAssetMigratedCashFlow, calcTotalCashFlow} from "@/app/_components/assets";
 import {last} from "@/app/lib/helper";
+import {yearsContext} from "@/app/privoders/years";
 
 export const FamilyComponent = () => {
   const {family} = useContext(familyContext);
@@ -23,9 +24,12 @@ type Props = {
 }
 
 const PersonComponent = ({person, familyIds}: Props) => {
+  const {years} = useContext(yearsContext);
   const [opened, setOpened] = useState(false)
   const isFirst = familyIds.indexOf(person.id) === 0
   const isLast = familyIds.indexOf(person.id) === 3
+  const totalCashFlow = calcTotalCashFlow(years, person)
+  calcAssetMigratedCashFlow(years, person.assets, totalCashFlow)
   return (
     <div>
       <h2>

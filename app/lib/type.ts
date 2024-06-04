@@ -7,6 +7,10 @@ export type CashFlows = {
   [key in Year]: MYen;
 }
 
+export type Balances = {
+  [key in Year]: MYen;
+}
+
 export type LifeEvent = {
   name: string;
   cashFlows: CashFlows;
@@ -35,6 +39,8 @@ export type Asset = {
   name: string;
   interest?: number;
   cashFlows: CashFlows;
+  migratedCashFlows?: CashFlows;
+  balances?: Balances;
 }
 
 export const ASSET_COLOR = '#6b78b4'
