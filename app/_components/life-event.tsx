@@ -2,7 +2,7 @@
 import {
   ASSET_COLOR,
   ASSET_COLOR_BG,
-  CashFlows,
+  CashFlows, getPerson,
   INCOME_COLOR,
   INCOME_COLOR_BG, LifeEvent,
   OUTCOME_COLOR,
@@ -18,17 +18,22 @@ import {familyContext} from "@/app/privoders/family";
 
 
 type Props = {
-  event: LifeEvent;
+  eventIndex: number;
+  personId: string;
 }
 
-export const LifeEventComponent = ({event}: Props) => {
+export const LifeEventComponent = ({eventIndex, personId}: Props) => {
   const { years } = useContext(yearsContext);
   const {family, setFamily} = useContext(familyContext);
   const [data, setData] = useState<ChartData<'line'> | null>(null);
 
+  const person = getPerson(family, personId)!
+  const event = person.lifeEvents[eventIndex];
   const onDragEnd = useCallback((index: number, val: number): void => {
     const newFamily = { ...family }
-    newFamily.user!.lifeEvents[0].cashFlows[index] = val;
+    const person = getPerson(newFamily, personId)!
+    const year = years[index];
+    person.lifeEvents[eventIndex].cashFlows[year] = val;
     setFamily(newFamily)
   }, [])
 
@@ -38,10 +43,10 @@ export const LifeEventComponent = ({event}: Props) => {
 
   return (
     <>
-      <div className="col-span-1">
+      <div>
         {event.name}
       </div>
-      <div className="col-span-9">
+      <div className="h-52">
         {data && <Line data={data} options={createOptions(data, onDragEnd)} height="200" width="100%"/> }
       </div>
     </>
@@ -73,8 +78,8 @@ const createOptions = (
     scales: {
       yAxis: {
         type: 'linear',
-        suggestedMin: min * 1.5,
-        suggestedMax: max * 1.5,
+        suggestedMin: Math.min(min * 1.5, -200),
+        suggestedMax: Math.max(max * 1.5, 200),
       },
     },
     responsive: true,

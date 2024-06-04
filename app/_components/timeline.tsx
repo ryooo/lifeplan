@@ -56,6 +56,7 @@ export const Timeline = () => {
     datasets: [
       {
         type: 'line' as const,
+        yAxisID: 'yAxisR',
         label: '資産残高',
         backgroundColor: ASSET_COLOR_BG,
         borderColor: ASSET_COLOR,
@@ -67,6 +68,7 @@ export const Timeline = () => {
       },
       {
         type: 'bar' as const,
+        yAxisID: 'yAxisL',
         label: '収入',
         backgroundColor: INCOME_COLOR,
         data: familyData.income,
@@ -75,6 +77,7 @@ export const Timeline = () => {
       },
       {
         type: 'bar' as const,
+        yAxisID: 'yAxisL',
         label: '支出',
         backgroundColor: OUTCOME_COLOR,
         data: familyData.outcome,
@@ -88,11 +91,18 @@ export const Timeline = () => {
       intersect: false,
       mode: "index",
     },
+    scales: {
+      yAxisR: {
+        position: 'right',
+      },
+      yAxisL: {
+      },
+    },
   }
   return <Chart type='bar' data={data} options={options} height="100%" width="100%" />;
 }
 
-type BalanceSheet = {
+export type BalanceSheet = {
   income: CashFlows,
   outcome: CashFlows,
   asset: CashFlows,
@@ -106,17 +116,21 @@ type FamilyData = {
   asset: number[],
 }
 
-const calcBalanceSheet = (years: Year[], person: Person): PersonBalanceSheet => {
+export const calcBalanceSheet = (years: Year[], person: Person): PersonBalanceSheet => {
   const data: PersonBalanceSheet = {
     income: [],
     outcome: [],
     asset: [],
   };
+  let lastTotalAsset = 0;
   for (let i = 0; i < years.length; i++) {
     const year = years[i]
-    data.income[year] = totalIncome(year, person)
-    data.outcome[year] = totalOutcome(year, person)
-    data.asset[year] = totalAsset(year, person)
+    const income = totalIncome(year, person)
+    const outcome = totalOutcome(year, person)
+    data.income[year] = income
+    data.outcome[year] = outcome
+    data.asset[year] = lastTotalAsset + totalAsset(year, person) + income - outcome
+    lastTotalAsset = data.asset[year]
   }
   return data
 }
@@ -188,7 +202,7 @@ const totalOutcome = (year: Year, person: Person): number => {
 const totalAsset = (year: Year, person: Person): number => {
   let total = 0;
   for (const asset of person.assets ?? []) {
-    total +=  asset.balance
+    total +=  (asset.cashFlows[year] || 0)
   }
   return total
 }

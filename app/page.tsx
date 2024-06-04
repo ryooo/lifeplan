@@ -6,7 +6,7 @@ import {familyContext, useFamily} from "./privoders/family";
 import {rangeArray} from "@/app/lib/helper";
 import {FamilyComponent} from "@/app/_components/family";
 import {
-  createInitialAsset,
+  createInitialBankAsset,
   createLifeCostCashFlows,
   createPensionCashFlows,
   createSalaryCashFlows
@@ -22,6 +22,7 @@ export default function Home() {
     yearsCtx.setYears(rangeArray(startYear, endYear))
     familyCtx.setFamily({
       user: {
+        id: "user",
         age: 40,
         retireAge: 65,
         lifeEvents: [
@@ -31,15 +32,39 @@ export default function Home() {
           },
           {
             name: '年金',
-            cashFlows: createPensionCashFlows(startYear, endYear, 40, 65, 1200)
+            cashFlows: createPensionCashFlows(startYear, endYear, 40, 65, 7 * 12)
           },
           {
             name: '生活費',
-            cashFlows: createLifeCostCashFlows(startYear, endYear, 40, 65, 10)
+            cashFlows: createLifeCostCashFlows(startYear, endYear, 40, 65, 20)
           },
         ],
         assets: [
-          createInitialAsset(startYear, 3000),
+          createInitialBankAsset(yearsCtx.years, [
+            {year: startYear, val: 3000},
+            {year: startYear + 25, val: 2000},
+          ]),
+        ],
+      },
+      partner: {
+        id: "partner",
+        age: 38,
+        retireAge: 65,
+        lifeEvents: [
+          {
+            name: 'サラリー',
+            cashFlows: createSalaryCashFlows(startYear, 38, 65, 80)
+          },
+          {
+            name: '年金',
+            cashFlows: createPensionCashFlows(startYear, endYear, 38, 65, 7 * 12)
+          },
+          {
+            name: '生活費',
+            cashFlows: createLifeCostCashFlows(startYear, endYear, 38, 65, 20)
+          },
+        ],
+        assets: [
         ],
       },
       children: [],
@@ -49,14 +74,14 @@ export default function Home() {
   return (
     <yearsContext.Provider value={yearsCtx}>
       <familyContext.Provider value={familyCtx}>
-        <main className="h-screen flex flex-wrap flex-col p-12">
-          <div className="h-2/3">
-            <div className="grid grid-cols-10">
+        <main>
+          <div>
+            <div className="p-10">
               <FamilyComponent />
+              <div className="h-60">
+                <Timeline/>
+              </div>
             </div>
-          </div>
-          <div className="h-1/3 pl-20">
-            <Timeline/>
           </div>
         </main>
       </familyContext.Provider>

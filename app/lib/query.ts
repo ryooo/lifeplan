@@ -1,5 +1,4 @@
 import {Adult, Asset, CashFlows, LifeEvent, Year} from "@/app/lib/type";
-import {last} from "@/app/lib/helper";
 
 export const createSalaryCashFlows = (currentYear: Year, age: number, retireAge: number, income: number): CashFlows => {
   const cashFlows: CashFlows = {};
@@ -16,9 +15,8 @@ export const createSalaryCashFlows = (currentYear: Year, age: number, retireAge:
   return cashFlows
 }
 
-export const createPensionCashFlows = (startYear: Year, endYear: Year, age: number, retireAge: number, income: number): CashFlows => {
+export const createPensionCashFlows = (startYear: Year, endYear: Year, age: number, retireAge: number, pension: number): CashFlows => {
   const cashFlows: CashFlows = {};
-  const pension = 14 * 12 + income * 0.001;
   const retireYear = startYear + (retireAge - age)
   for (let i = retireYear; i < endYear; i++) {
     cashFlows[i] = pension;
@@ -40,11 +38,16 @@ export const createLifeCostCashFlows = (startYear: Year, endYear: Year, age: num
   return cashFlows
 }
 
-export const createInitialAsset = (year: Year, balance: number): Asset => {
+export const createInitialBankAsset = (years: Year[], incomes: {year: number, val: number}[]): Asset => {
+  const cashFlows: CashFlows = {}
+  for (const year of years) {
+    cashFlows[year] = 0
+  }
+  for (const income of incomes) {
+    cashFlows[income.year] = income.val
+  }
   return {
-    type: 'bank',
-    year,
-    balance,
-    interest: 1,
+    name: 'bank',
+    cashFlows
   }
 }
