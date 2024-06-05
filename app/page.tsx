@@ -2,6 +2,7 @@
 import {Timeline} from "@/app/_components/timeline";
 import {useContext, useEffect} from "react";
 import {familyContext, useFamily} from "./privoders/family";
+import {chatMessagesContext, useChatMessages} from "./privoders/chat-messages";
 import {END_YEAR, rangeArray, START_YEAR} from "@/app/lib/helper";
 import {FamilyComponent} from "@/app/_components/family";
 import {
@@ -11,9 +12,12 @@ import {
   createPensionCashFlows,
   createSalaryCashFlows, createStockAsset
 } from "@/app/lib/query";
+import {Textarea} from "@chakra-ui/react";
+import {ChatComponent} from "@/app/_components/chat-message";
 
 export default function Home() {
   const familyCtx = useFamily();
+  const chatMessagesCtx = useChatMessages()
 
   useEffect(() => {
     familyCtx.setFamily({
@@ -105,17 +109,20 @@ export default function Home() {
   }, []);
 
   return (
-    <familyContext.Provider value={familyCtx}>
-      <main>
-        <div>
-          <div className="p-10">
+    <chatMessagesContext.Provider value={chatMessagesCtx}>
+      <familyContext.Provider value={familyCtx}>
+        <div className="flex h-screen w-full">
+          <main className="flex-1 p-8 md:p-12 lg:p-16 overflow-y-auto">
             <FamilyComponent/>
             <div className="h-60">
               <Timeline/>
             </div>
-          </div>
+          </main>
+          <aside className="hidden w-96 border-l bg-gray-50 p-8 dark:bg-gray-900 md:block overflow-y-auto">
+            <ChatComponent />
+          </aside>
         </div>
-      </main>
-    </familyContext.Provider>
+      </familyContext.Provider>
+    </chatMessagesContext.Provider>
   );
 }
