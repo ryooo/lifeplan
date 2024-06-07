@@ -10,7 +10,7 @@ import {
   createBankAsset,
   createLifeCostCashFlows,
   createPensionCashFlows,
-  createSalaryCashFlows, createStockAsset
+  createSalaryCashFlows, createStockAsset, createChild, createAdult
 } from "@/app/lib/query";
 import {Textarea} from "@chakra-ui/react";
 import {ChatComponent} from "@/app/_components/chat-message";
@@ -20,92 +20,59 @@ export default function Home() {
   const chatMessagesCtx = useChatMessages()
 
   useEffect(() => {
-    // familyCtx.setFamily({
-    //   user: {
-    //     id: "user",
-    //     age: 40,
-    //     retireAge: 65,
-    //     lifeEvents: [
-    //       {
-    //         name: 'サラリー',
-    //         cashFlows: createSalaryCashFlows(40, 65, 1200)
-    //       },
-    //       {
-    //         name: '年金',
-    //         cashFlows: createPensionCashFlows(40, 65, 7)
-    //       },
-    //       {
-    //         name: '生活費',
-    //         cashFlows: createLifeCostCashFlows(40, 65, 20)
-    //       },
-    //     ],
-    //   },
-    //   partner: {
-    //     id: "partner",
-    //     age: 38,
-    //     retireAge: 65,
-    //     lifeEvents: [
-    //       {
-    //         name: 'サラリー',
-    //         cashFlows: createSalaryCashFlows(38, 65, 80)
-    //       },
-    //       {
-    //         name: '年金',
-    //         cashFlows: createPensionCashFlows(38, 65, 7)
-    //       },
-    //       {
-    //         name: '生活費',
-    //         cashFlows: createLifeCostCashFlows(38, 65, 20)
-    //       },
-    //     ],
-    //   },
-    //   children: [
-    //     {
-    //       id: "child1",
-    //       age: 8,
-    //       lifeEvents: [
-    //         {
-    //           name: '生活費',
-    //           cashFlows: createFlatCostCashFlows(8, 8, 22, 10)
-    //         },
-    //         {
-    //           name: '高校',
-    //           cashFlows: createFlatCostCashFlows(8, 15, 17, 5)
-    //         },
-    //         {
-    //           name: '大学',
-    //           cashFlows: createFlatCostCashFlows(8, 18, 22, 15)
-    //         },
-    //       ],
-    //     },
-    //     {
-    //       id: "child2",
-    //       age: 11,
-    //       lifeEvents: [
-    //         {
-    //           name: '生活費',
-    //           cashFlows: createFlatCostCashFlows(11, 11, 22, 10)
-    //         },
-    //         {
-    //           name: '高校',
-    //           cashFlows: createFlatCostCashFlows(11, 15, 17, 5)
-    //         },
-    //         {
-    //           name: '大学',
-    //           cashFlows: createFlatCostCashFlows(11, 18, 22, 15)
-    //         },
-    //       ],
-    //     },
-    //   ],
-    //   assets: [
-    //     createBankAsset([
-    //       {year: START_YEAR, val: 1000},
-    //     ]),
-    //     createStockAsset(1.02, [
-    //       {year: START_YEAR, val: 3000},
-    //     ])
-    //   ],
-    // })
+    familyCtx.setFamily({
+      user: createAdult({
+        id: "user",
+        age: 40,
+        peekAge: 52,
+        toPeekRate: 1.02,
+        retireAge: 65,
+        toRetireRate: 0.92,
+        currentIncome: 1200,
+        pension: 7,
+        baseExpence: 20,
+      }),
+      partner: createAdult({
+        id: "partner",
+        age: 38,
+        peekAge: 52,
+        toPeekRate: 1.02,
+        retireAge: 65,
+        toRetireRate: 0.92,
+        currentIncome: 100,
+        pension: 7,
+        baseExpence: 20,
+      }),
+      children: [
+        createChild({
+          id: "child1",
+          age: 8,
+          baseExpence: 10,
+          highSchoolExpence: 5,
+          universityExpence: 15,
+        }),
+        createChild({
+          id: "child2",
+          age: 11,
+          baseExpence: 10,
+          highSchoolExpence: 5,
+          universityExpence: 15,
+        }),
+      ],
+      assets: [
+        createBankAsset({
+          incomes: [
+            {year: START_YEAR, val: 1000},
+          ],
+        }),
+        createStockAsset({
+          interest: 1.02,
+          incomes: [
+            {year: START_YEAR, val: 3000},
+          ],
+        })
+      ],
+    })
   }, []);
 
   return (

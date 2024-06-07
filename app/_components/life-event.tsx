@@ -32,11 +32,11 @@ export const LifeEventComponent = ({eventIndex, personId}: Props) => {
     const year = YEARS[index];
     person.lifeEvents[eventIndex].cashFlows[year] = val;
     setFamily(newFamily)
-  }, [])
+  }, [family])
 
   useEffect(() => {
     setData(createData(event.cashFlows))
-  }, [event])
+  }, [event, family])
 
   return (
     <>

@@ -1,16 +1,23 @@
-import {Adult, Asset, CashFlows, LifeEvent, Year} from "@/app/lib/type";
+import {Adult, Asset, CashFlows, Child, LifeEvent, Year} from "@/app/lib/type";
 import {END_YEAR, START_YEAR, YEARS} from "@/app/lib/helper";
 
-export const createSalaryCashFlows = (age: number, retireAge: number, income: number): CashFlows => {
+export const createSalaryCashFlows = (
+  age: number,
+  peekAge: number,
+  toPeekRate: number,
+  retireAge: number,
+  toRetireRate: number,
+  currentIncome: number,
+): CashFlows => {
   const cashFlows: CashFlows = {};
-  const upTimes = 52 - age;
+  const upTimes = peekAge - age;
   for (let i = 0; i < retireAge - age; i++) {
     if (i <= upTimes) {
       // 52歳まで2%ずつ昇給
-      cashFlows[START_YEAR + i] = income * Math.pow(1.02, i);
+      cashFlows[START_YEAR + i] = currentIncome * Math.pow(toPeekRate, i);
     } else {
-      const maxIncome = income * Math.pow(1.02, upTimes)
-      cashFlows[START_YEAR + i] = maxIncome * Math.pow(0.92, i - upTimes);
+      const maxIncome = currentIncome * Math.pow(toPeekRate, upTimes)
+      cashFlows[START_YEAR + i] = maxIncome * Math.pow(toRetireRate, i - upTimes);
     }
   }
   return cashFlows
@@ -49,12 +56,16 @@ export const createFlatCostCashFlows = (age: number, startAge: number, endAge: n
   return cashFlows
 }
 
-export const createBankAsset = (incomes: {year: number, val: number}[]): Asset => {
+export type BackAssetParams = {
+  incomes: { year: number, val: number }[];
+}
+
+export const createBankAsset = (params: BackAssetParams): Asset => {
   const cashFlows: CashFlows = {}
   for (const year of YEARS) {
     cashFlows[year] = 0
   }
-  for (const income of incomes) {
+  for (const income of params.incomes) {
     cashFlows[income.year] = income.val
   }
   return {
@@ -63,17 +74,94 @@ export const createBankAsset = (incomes: {year: number, val: number}[]): Asset =
   }
 }
 
-export const createStockAsset = (interest: number, incomes: {year: number, val: number}[]): Asset => {
+export type StockAssetParams = {
+  interest: number;
+  incomes: { year: number, val: number }[];
+}
+
+export const createStockAsset = (params: StockAssetParams): Asset => {
   const cashFlows: CashFlows = {}
   for (const year of YEARS) {
     cashFlows[year] = 0
   }
-  for (const income of incomes) {
+  for (const income of params.incomes) {
     cashFlows[income.year] = income.val
   }
   return {
     name: '運用資産',
-    interest,
+    interest: params.interest,
     cashFlows
+  }
+}
+
+export type AdultParams = {
+  id: 'user' | 'partner';
+  age: number;
+  peekAge: number;
+  toPeekRate: number;
+  retireAge: number;
+  toRetireRate: number;
+  currentIncome: number;
+  pension: number;
+  baseExpence: number;
+}
+
+export const createAdult = (params: AdultParams): Adult => {
+  return {
+    params,
+    id: params.id,
+    age: params.age,
+    retireAge: params.retireAge,
+    lifeEvents: [
+      {
+        name: 'サラリー',
+        cashFlows: createSalaryCashFlows(
+          params.age,
+          params.peekAge,
+          params.toPeekRate,
+          params.retireAge,
+          params.toRetireRate,
+          params.currentIncome,
+        ),
+      },
+      {
+        name: '年金',
+        cashFlows: createPensionCashFlows(params.age, params.retireAge, params.pension)
+      },
+      {
+        name: '生活費',
+        cashFlows: createLifeCostCashFlows(params.age, params.retireAge, params.baseExpence)
+      },
+    ],
+  }
+}
+
+export type ChildParams = {
+  id: Exclude<string, 'user' | 'partner'>;
+  age: number;
+  baseExpence: number;
+  highSchoolExpence: number;
+  universityExpence: number;
+}
+
+export const createChild = (params: ChildParams): Child => {
+  return {
+    params,
+    id: params.id,
+    age: params.age,
+    lifeEvents: [
+      {
+        name: '生活費',
+        cashFlows: createFlatCostCashFlows(params.age, params.age, 22, params.baseExpence)
+      },
+      {
+        name: '高校',
+        cashFlows: createFlatCostCashFlows(params.age, 15, 17, params.highSchoolExpence)
+      },
+      {
+        name: '大学',
+        cashFlows: createFlatCostCashFlows(params.age, 18, 22, params.universityExpence)
+      },
+    ],
   }
 }

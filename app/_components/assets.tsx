@@ -88,7 +88,6 @@ const createOptions = (
 }
 
 const createData = (asset: Asset): ChartData<'line'> => {
-  console.log(asset.cashFlows?.[2024], asset.cashFlows?.[2025], asset.balances?.[2024], asset.balances?.[2025], asset.migratedCashFlows?.[2024], asset.migratedCashFlows?.[2025],)
   const datasets: ChartDataset<'line'>[] = [{
     type: 'line' as const,
     yAxisID: 'yAxisL',

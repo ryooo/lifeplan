@@ -1,5 +1,6 @@
 import {YEARS} from "@/app/lib/helper";
 import {getAllMembers} from "@/app/_components/family";
+import {AdultParams, ChildParams} from "@/app/lib/query";
 
 export type Age = number;
 export type Year = number;
@@ -25,17 +26,22 @@ export type Family = {
   assets: Asset[];
 }
 
-export type Person = {
+export type Person = Adult | Child;
+
+export type Adult = {
   id: string;
   age: Age;
   lifeEvents: LifeEvent[];
-}
-
-export type Adult = Person & {
   retireAge?: Age;
+  params: AdultParams;
 }
 
-export type Child = Person;
+export type Child = {
+  id: string;
+  age: Age;
+  lifeEvents: LifeEvent[];
+  params: ChildParams;
+};
 
 export type Asset = {
   name: string;
