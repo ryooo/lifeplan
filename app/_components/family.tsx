@@ -37,13 +37,14 @@ type Props = {
 }
 
 const PersonComponent = ({person, setSliderPopupProp}: Props) => {
-  const [opened, setOpened] = useState(false)
+  const [opened, setOpened] = useState(person.opened)
 
   const {family, setFamily} = useContext(familyContext);
 
   const updateParams = useCallback((params: AdultParams | ChildParams) => {
     const newFamily = {...family}
     const adultIndex = newFamily.adults.findIndex(a => a.id === person.id)
+    params.opened = opened
     if (adultIndex >= 0) {
       newFamily.adults[adultIndex] = createAdult(params as AdultParams)
     } else {
@@ -54,7 +55,7 @@ const PersonComponent = ({person, setSliderPopupProp}: Props) => {
     }
 
     setFamily(newFamily)
-  }, [family, person])
+  }, [family, person, opened])
 
   return (
     <div className="my-3">

@@ -105,6 +105,7 @@ export type AdultParams = {
   currentIncome: number;
   pension: number;
   baseExpence: number;
+  opened?: boolean;
 }
 
 export const createAdult = (params: AdultParams): Adult => {
@@ -116,6 +117,7 @@ export const createAdult = (params: AdultParams): Adult => {
     sex: params.sex,
     age: params.age,
     retireAge: params.retireAge,
+    opened: params.opened || false,
     lifeEvents: [
       {
         name: 'サラリー',
@@ -147,6 +149,7 @@ export type ChildParams = {
   baseExpence: number;
   highSchoolExpence: number;
   universityExpence: number;
+  opened?: boolean;
 }
 
 export const createChild = (params: ChildParams): Child => {
@@ -157,6 +160,7 @@ export const createChild = (params: ChildParams): Child => {
     name: params.name,
     sex: params.sex,
     age: params.age,
+    opened: params.opened || false,
     lifeEvents: [
       {
         name: '生活費',

@@ -37,6 +37,7 @@ export type Adult = {
   lifeEvents: LifeEvent[];
   retireAge?: Age;
   params: AdultParams;
+  opened: boolean;
 }
 
 export type Child = {
@@ -47,6 +48,7 @@ export type Child = {
   age: Age;
   lifeEvents: LifeEvent[];
   params: ChildParams;
+  opened: boolean;
 };
 
 export type Asset = {
