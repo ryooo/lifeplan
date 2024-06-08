@@ -21,38 +21,44 @@ export default function Home() {
 
   useEffect(() => {
     familyCtx.setFamily({
-      user: createAdult({
-        id: "user",
-        age: 40,
-        peekAge: 52,
-        toPeekRate: 1.02,
-        retireAge: 65,
-        toRetireRate: 0.92,
-        currentIncome: 1200,
-        pension: 7,
-        baseExpence: 20,
-      }),
-      partner: createAdult({
-        id: "partner",
-        age: 38,
-        peekAge: 52,
-        toPeekRate: 1.02,
-        retireAge: 65,
-        toRetireRate: 0.92,
-        currentIncome: 100,
-        pension: 7,
-        baseExpence: 20,
-      }),
+      adults: [
+        createAdult({
+          name: 'お客様',
+          sex: 'man',
+          age: 40,
+          peekAge: 52,
+          toPeekRate: 1.02,
+          retireAge: 65,
+          toRetireRate: 0.92,
+          currentIncome: 1200,
+          pension: 7,
+          baseExpence: 20,
+        }),
+        createAdult({
+          name: '配偶者様',
+          sex: 'woman',
+          age: 38,
+          peekAge: 52,
+          toPeekRate: 1.02,
+          retireAge: 65,
+          toRetireRate: 0.92,
+          currentIncome: 100,
+          pension: 7,
+          baseExpence: 20,
+        }),
+      ],
       children: [
         createChild({
-          id: "child1",
+          name: 'お子様',
+          sex: 'woman',
           age: 8,
           baseExpence: 10,
           highSchoolExpence: 5,
           universityExpence: 15,
         }),
         createChild({
-          id: "child2",
+          name: 'お子様',
+          sex: 'man',
           age: 11,
           baseExpence: 10,
           highSchoolExpence: 5,
@@ -79,10 +85,14 @@ export default function Home() {
     <chatMessagesContext.Provider value={chatMessagesCtx}>
       <familyContext.Provider value={familyCtx}>
         <div className="flex h-screen w-full">
-          <main className="flex-1 p-8 md:p-12 lg:p-16 overflow-y-auto">
-            <FamilyComponent/>
-            <div className="h-60">
-              <Timeline/>
+          <main className="flex-1 overflow-y-auto">
+            <div className="px-8 md:px-12 lg:px-16 pt-8 md:pt-12 lg:pt-16">
+              <FamilyComponent/>
+            </div>
+            <div className="sticky bottom-0 bg-white rounded-t-3xl border-t-4">
+              <div className="px-8 lg:px-16 lg:py-12 lg:h-96 md:px-8 md:py-4 md:h-52">
+                <Timeline/>
+              </div>
             </div>
           </main>
           <aside className="hidden w-96 border-l bg-gray-50 p-8 dark:bg-gray-900 md:block overflow-y-auto">

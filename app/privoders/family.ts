@@ -10,6 +10,7 @@ type FamilyContext = {
 
 const defaultContext: FamilyContext = {
   family: {
+    adults: [],
     children: [],
     assets: [],
   },

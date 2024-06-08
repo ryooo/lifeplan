@@ -10,9 +10,13 @@
   },
   "dependencies": {
     "@chakra-ui/react": "^2.8.2",
+    "@nextui-org/react": "^2.4.1",
+    "@nextui-org/slider": "^2.2.11",
+    "@nextui-org/theme": "^2.2.5",
     "chart.js": "^4.4.3",
     "chartjs-plugin-dragdata": "^2.2.5",
     "chartjs-plugin-gradient": "^0.6.1",
+    "framer-motion": "^11.2.10",
     "next": "14.2.3",
     "openai": "^4.48.1",
     "react": "^18",

@@ -1,4 +1,4 @@
-import {Adult, Asset, CashFlows, Child, LifeEvent, Year} from "@/app/lib/type";
+import {Adult, Asset, CashFlows, Child, LifeEvent, Sex, Year} from "@/app/lib/type";
 import {END_YEAR, START_YEAR, YEARS} from "@/app/lib/helper";
 
 export const createSalaryCashFlows = (
@@ -95,7 +95,8 @@ export const createStockAsset = (params: StockAssetParams): Asset => {
 }
 
 export type AdultParams = {
-  id: 'user' | 'partner';
+  name: string | null;
+  sex: Sex | null;
   age: number;
   peekAge: number;
   toPeekRate: number;
@@ -108,8 +109,11 @@ export type AdultParams = {
 
 export const createAdult = (params: AdultParams): Adult => {
   return {
+    type: 'adult',
     params,
-    id: params.id,
+    id:  crypto.randomUUID(),
+    name: params.name,
+    sex: params.sex,
     age: params.age,
     retireAge: params.retireAge,
     lifeEvents: [
@@ -137,7 +141,8 @@ export const createAdult = (params: AdultParams): Adult => {
 }
 
 export type ChildParams = {
-  id: Exclude<string, 'user' | 'partner'>;
+  name: string | null;
+  sex: Sex | null;
   age: number;
   baseExpence: number;
   highSchoolExpence: number;
@@ -146,8 +151,11 @@ export type ChildParams = {
 
 export const createChild = (params: ChildParams): Child => {
   return {
+    type: 'child',
     params,
-    id: params.id,
+    id:  crypto.randomUUID(),
+    name: params.name,
+    sex: params.sex,
     age: params.age,
     lifeEvents: [
       {
@@ -165,3 +173,27 @@ export const createChild = (params: ChildParams): Child => {
     ],
   }
 }
+
+export const isAdult = (t: unknown): t is Adult => {
+  if (!t || typeof t !== "object") return false;
+  const type = (t as any).type;
+  return type === "adult";
+};
+
+export const isChild = (t: unknown): t is Child => {
+  if (!t || typeof t !== "object") return false;
+  const type = (t as any).type;
+  return type === "child";
+};
+
+export const isMan = (t: unknown): t is Child => {
+  if (!t || typeof t !== "object") return false;
+  const sex = (t as any).sex;
+  return sex === "man";
+};
+
+export const isWoman = (t: unknown): t is Child => {
+  if (!t || typeof t !== "object") return false;
+  const sex = (t as any).sex;
+  return sex === "woman";
+};

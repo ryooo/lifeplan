@@ -20,16 +20,19 @@ export type LifeEvent = {
 }
 
 export type Family = {
-  user?: Adult;
-  partner?: Adult;
+  adults: Adult[];
   children: Child[];
   assets: Asset[];
 }
 
 export type Person = Adult | Child;
+export type Sex = 'man' | 'woman';
 
 export type Adult = {
+  type: 'adult';
   id: string;
+  name: string | null;
+  sex: Sex | null;
   age: Age;
   lifeEvents: LifeEvent[];
   retireAge?: Age;
@@ -37,7 +40,10 @@ export type Adult = {
 }
 
 export type Child = {
+  type: 'child';
   id: string;
+  name: string | null;
+  sex: Sex | null;
   age: Age;
   lifeEvents: LifeEvent[];
   params: ChildParams;
@@ -60,14 +66,7 @@ export const OUTCOME_COLOR = '#cccccc'
 export const OUTCOME_COLOR_BG = '#cccccc33'
 
 export const getPerson = (family: Family, personId: string): Person | undefined => {
-  switch (personId) {
-    case "user":
-      return family.user;
-    case "partner":
-      return family.partner;
-  }
-  const index = Number(personId.replace("child", "")) - 1
-  return family.children[index]
+  return getAllMembers(family).find(p => p.id === personId)
 }
 
 
