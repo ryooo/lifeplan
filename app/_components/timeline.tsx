@@ -105,10 +105,21 @@ export const Timeline = () => {
     scales: {
       yAxisR: {
         position: 'right',
+        title: {
+          display: true,
+          text: "資産残高（万円）",
+        },
       },
       yAxisL: {
+        title: {
+          display: true,
+          text: "収入/支出（万円）",
+        },
       },
     },
   }
-  return <Chart type='bar' data={data} options={options} height="100%" width="100%" />;
+  return <>
+    <h1 className="text-xl font-semibold">家族の合計</h1>
+    <Chart type='bar' data={data} options={options} height="100%" width="100%" />
+  </>;
 }

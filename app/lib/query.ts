@@ -56,30 +56,14 @@ export const createFlatCostCashFlows = (age: number, startAge: number, endAge: n
   return cashFlows
 }
 
-export type BackAssetParams = {
-  incomes: { year: number, val: number }[];
-}
-
-export const createBankAsset = (params: BackAssetParams): Asset => {
-  const cashFlows: CashFlows = {}
-  for (const year of YEARS) {
-    cashFlows[year] = 0
-  }
-  for (const income of params.incomes) {
-    cashFlows[income.year] = income.val
-  }
-  return {
-    name: '預金',
-    cashFlows
-  }
-}
-
-export type StockAssetParams = {
+export type AssetParams = {
+  class: 'bank' | 'managed asset';
   interest: number;
   incomes: { year: number, val: number }[];
+  opened: boolean;
 }
 
-export const createStockAsset = (params: StockAssetParams): Asset => {
+export const createBankAsset = (params: AssetParams): Asset => {
   const cashFlows: CashFlows = {}
   for (const year of YEARS) {
     cashFlows[year] = 0
@@ -88,9 +72,50 @@ export const createStockAsset = (params: StockAssetParams): Asset => {
     cashFlows[income.year] = income.val
   }
   return {
+    type: 'asset',
+    id:  crypto.randomUUID(),
+    name: '預金',
+    cashFlows,
+    params,
+    opened: params.opened || false,
+  }
+}
+
+export const createStockAsset = (params: AssetParams): Asset => {
+  const cashFlows: CashFlows = {}
+  for (const year of YEARS) {
+    cashFlows[year] = 0
+  }
+  for (const income of params.incomes) {
+    cashFlows[income.year] = income.val
+  }
+  return {
+    type: 'asset',
+    id:  crypto.randomUUID(),
     name: '運用資産',
-    interest: params.interest,
-    cashFlows
+    cashFlows,
+    params,
+    opened: params.opened || false,
+  }
+}
+
+export const createAsset = (params: AssetParams): Asset => {
+  return {
+    type: 'asset',
+    id:  crypto.randomUUID(),
+    name:  getAssetClassName(params.class),
+    cashFlows: [],
+    params,
+    opened: params.opened || false,
+  }
+}
+
+const getAssetClassName = (cls: string): string => {
+  switch (cls) {
+    case "bank":
+      return "預金"
+    default:
+      return '運用資産'
   }
 }
 
@@ -105,6 +130,7 @@ export type AdultParams = {
   currentIncome: number;
   pension: number;
   baseExpence: number;
+  totalInclude: boolean;
   opened?: boolean;
 }
 
@@ -149,6 +175,7 @@ export type ChildParams = {
   baseExpence: number;
   highSchoolExpence: number;
   universityExpence: number;
+  totalInclude: boolean;
   opened?: boolean;
 }
 

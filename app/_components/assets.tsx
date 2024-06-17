@@ -15,7 +15,11 @@ import React, {useCallback, useContext, useEffect, useRef, useState} from "react
 import {ChartData, ChartDataset, ChartOptions} from "chart.js";
 import {Line} from "react-chartjs-2";
 import {familyContext} from "@/app/privoders/family";
-import {YEARS} from "@/app/lib/helper";
+import {invariant, YEARS} from "@/app/lib/helper";
+import {AssetParamsComponent, SliderPopup, SliderPopupProps} from "@/app/_components/params";
+import {AdultParams, AssetParams, ChildParams, createAsset} from "@/app/lib/query";
+import StreamlineEmojisMoneyBag from "@/app/icons/StreamlineEmojisMoneyBag";
+import StreamlineEmojisDollarBanknote from "@/app/icons/StreamlineEmojisDollarBanknote";
 
 
 type Props = {
@@ -24,6 +28,8 @@ type Props = {
 }
 
 export const AssetComponent = ({assetIndex, asset}: Props) => {
+  const [sliderPopupProp, setSliderPopupProp] = useState<SliderPopupProps | undefined>()
+  const [opened, setOpened] = useState(asset.opened)
   const {family, setFamily} = useContext(familyContext);
   const [data, setData] = useState<ChartData<'line'> | null>(null);
 
@@ -39,15 +45,56 @@ export const AssetComponent = ({assetIndex, asset}: Props) => {
     setData(createData(asset))
   }, [family, asset])
 
+  const updateParams = useCallback((params: AdultParams | ChildParams | AssetParams) => {
+    const newFamily = {...family}
+    const adultIndex = newFamily.assets.findIndex(a => a.id === asset.id)
+    invariant(adultIndex >= 0, "invalid adult id")
+    newFamily.assets[adultIndex] = createAsset(params as AssetParams)
+
+    setFamily(newFamily)
+  }, [family, asset, opened])
+
+
   return (
-    <>
-      <div>{asset.name} シミュレーション</div>
-      <div className="h-52">
-        {data && <Line data={data} options={createOptions(data, onDragEnd)} height="200" width="100%"/>}
+    <div className="my-3">
+      <h2>
+        <button
+          type="button"
+                className="rounded-t-xl flex items-center justify-between w-full p-5 font-medium rtl:text-right text-gray-500 border border-gray-200 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-800 dark:border-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 gap-3"
+                data-accordion-target="#accordion-open-body-1" onClick={(e) => {
+          setOpened(!opened)
+        }}>
+          <span className="flex items-center text-2xl">
+            {getIcon(asset)}{asset.name} シミュレーション
+          </span>
+          <svg className="w-3 h-3 rotate-180 shrink-0" aria-hidden="true"
+               xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5 5 1 1 5"/>
+          </svg>
+        </button>
+        <div
+          className={(opened ? "" : "rounded-b-xl ") + "p-5 border border-gray-200 dark:border-gray-700 dark:bg-gray-900"}>
+          <AssetParamsComponent asset={asset} updateParams={updateParams} setSliderPopupProp={setSliderPopupProp}/>
+        </div>
+      </h2>
+      <div className={opened ? "" : "hidden"}>
+        <div
+          className={"rounded-b-xl p-5 border border-gray-200 dark:border-gray-700 dark:bg-gray-900"}>
+          {data && <Line data={data} options={createOptions(data, onDragEnd)} height="200" width="100%"/>}
+        </div>
       </div>
-    </>
+      {sliderPopupProp && <SliderPopup {...sliderPopupProp} />}
+    </div>
   )
 }
+
+export const getIcon = (asset: Asset) => {
+  if (asset.params.class == 'bank') {
+  return <StreamlineEmojisDollarBanknote fontSize={80}/>
+  }
+  return <StreamlineEmojisMoneyBag fontSize={80}/>
+}
+
 
 const createOptions = (
   data: ChartData<"line">,

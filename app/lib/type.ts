@@ -1,6 +1,6 @@
 import {YEARS} from "@/app/lib/helper";
 import {getAllMembers} from "@/app/_components/family";
-import {AdultParams, ChildParams} from "@/app/lib/query";
+import {AdultParams, AssetParams, ChildParams} from "@/app/lib/query";
 
 export type Age = number;
 export type Year = number;
@@ -52,11 +52,15 @@ export type Child = {
 };
 
 export type Asset = {
-  name: string;
+  type: 'asset';
+  id: string;
+  name: string | null;
   interest?: number;
   cashFlows: CashFlows;
   migratedCashFlows?: CashFlows;
   balances?: Balances;
+  params: AssetParams;
+  opened: boolean;
 }
 
 export const ASSET_COLOR = '#6b78b4'
@@ -108,6 +112,7 @@ export const calcFamilyCashFlow = (family: Family): FamilyCashFlow => {
   const members = getAllMembers(family)
   for (const year of YEARS) {
     for (const person of members) {
+      if (!person.params.totalInclude) continue;
       const income = totalIncome(year, person)
       const outcome = totalOutcome(year, person)
       data.income[year] ||= 0

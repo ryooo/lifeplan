@@ -2,15 +2,17 @@ import {ChatMessage, ChatMessages} from "@/app/lib/chat";
 import {chatMessagesContext} from "@/app/privoders/chat-messages";
 import {useCallback, useContext, useEffect, useRef, useState} from "react";
 import {Textarea} from "@chakra-ui/react";
-import {chatMessage, firstMessage} from "@/app/lib/llm";
+import {chatMessage, firstMessage, fixJson} from "@/app/lib/llm";
 import {familyContext} from "@/app/privoders/family";
-import {Family} from "@/app/lib/type";
+import {Family, Sex} from "@/app/lib/type";
 import {
+  createAdult, createAsset, createBankAsset, createChild,
   createFlatCostCashFlows,
   createLifeCostCashFlows,
   createPensionCashFlows,
-  createSalaryCashFlows
+  createSalaryCashFlows, createStockAsset
 } from "@/app/lib/query";
+import {START_YEAR} from "@/app/lib/helper";
 
 
 type ChatMessageComponentProp = {
@@ -52,8 +54,8 @@ export const ChatComponent = () => {
     setChatMessages(newChatMessages)
 
     setLoading(true)
-    const llmMessage = await chatMessage(textAreaRef.current!.value)
-    const [systemCommands, userMessae] = findSystemCommand(llmMessage)
+    const llmMessage = await chatMessage(textAreaRef.current!.value, chatMessages, getFamilyCondition(family))
+    const [systemCommands, userMessae] = await findSystemCommand(llmMessage)
     const newFamily = execSystemCommands(systemCommands, family)
     if (newFamily) {
       setFamily(newFamily)
@@ -67,40 +69,42 @@ export const ChatComponent = () => {
   }, [chatMessages, family])
 
   useEffect(() => {
-    setChatMessages([{
-      speaker: 'ファイナンシャルプランナー',
-      message: firstMessage,
-    }])
+    if (chatMessages.length === 0) {
+      setChatMessages([{
+        speaker: 'ファイナンシャルプランナー',
+        message: firstMessage,
+      }])
+    }
   }, []);
 
   return (
-    <>
-      <div className="flex items-center justify-between">
+    <div className="flex flex-row h-screen w-full">
+      <div className="p-2 flex flex-col bg-white">
         <h2 className="text-xl font-bold">Chat</h2>
-      </div>
-      <div className="mt-4 flex-1 overflow-y-auto">
-        <div className="grid gap-4">
-          <ChatMessagesComponent chatMessages={chatMessages}/>
+        <div className="flex-grow overflow-y-auto">
+          <div className="space-y-4 pb-4">
+            <ChatMessagesComponent chatMessages={chatMessages}/>
+          </div>
+          <div className="border-t border-gray-200 bg-white sticky bottom-0 h-52 pt-4">
+            {
+              !loading && <Textarea
+                ref={textAreaRef}
+                placeholder="Type your message..."
+                className="w-full resize-none rounded-md border border-gray-300 p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                    addChatMessage(textAreaRef.current!.value)
+                    textAreaRef.current!.value = ""
+                    e.preventDefault()
+                    return false
+                  }
+                }}
+              />
+            }
+          </div>
         </div>
-        <div className="mt-4 border-t pt-4">
-          {
-            !loading && <Textarea
-              ref={textAreaRef}
-              placeholder="Type your message..."
-              className="w-full resize-none rounded-md border border-gray-300 p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                  addChatMessage(textAreaRef.current!.value)
-                  textAreaRef.current!.value = ""
-                  e.preventDefault()
-                  return false
-                }
-              }}
-            />
-          }
-        </div>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -108,7 +112,7 @@ type SystemCommand = {
   command: string;
 }
 
-const findSystemCommand = (llmMessage: string): [SystemCommand[], string] => {
+const findSystemCommand = async (llmMessage: string): Promise<[SystemCommand[], string]> => {
   const regex = /```json\s*({[\s\S]*?})\s*```/g;
 
   let userMessage = llmMessage
@@ -118,62 +122,168 @@ const findSystemCommand = (llmMessage: string): [SystemCommand[], string] => {
     userMessage = userMessage.replace(match, "")
     const js = match.replace("```json", "").replace("```", "")
     console.log(match, js)
-    systemCommands.push(JSON.parse(js))
+    try {
+      systemCommands.push(JSON.parse(js))
+    } catch (e: any) {
+      if (e.message.startsWith("SyntaxError")) {
+        const fixedJson = (await fixJson(js)).replace("```json", "").replace("```", "")
+        console.log("fixedJson", fixedJson)
+        systemCommands.push(JSON.parse(fixedJson))
+      }
+    }
   }
   return [systemCommands, userMessage]
+}
+
+type SystemCommandCreateAdult = SystemCommand & {
+  command: 'createAdult';
+  age: number;
+  incomePerYearJpy: number;
+}
+
+type SystemCommandCreateChild = SystemCommand & {
+  command: 'createChild';
+  age: number;
+}
+
+type SystemCommandSetBankBalance = SystemCommand & {
+  command: 'setBankBalance';
+  balanceJpy: number;
+}
+
+type SystemCommandSetManagedAssetBalance = SystemCommand & {
+  command: 'setManagedAssetBalance';
+  year: number;
+  balanceJpy: number;
+}
+
+type SystemCommandScheduledDeposit = SystemCommand & {
+  command: 'scheduledDeposit';
+  year: number;
+  balanceJpy: number;
+}
+
+type SystemCommandUpdateFamilyExpence = SystemCommand & {
+  command: 'updateFamilyExpence';
+  balanceJpy: number;
+}
+
+type SystemCommandUpdateFamilyPension = SystemCommand & {
+  command: 'updateFamilyPension';
+  balanceJpy: number;
 }
 
 const execSystemCommands = (systemCommands: SystemCommand[], family: Family): Family | undefined => {
   const newFamily = {...family}
   for (const systemCommand of systemCommands) {
     switch (systemCommand.command) {
-      case "create_adult":
-        const c = systemCommand as any
-        const age = c.age as number
-        const income = c.income_per_year as number
-        newFamily.user = {
-          id: "user",
-          age: age,
+      case "createAdult":
+        const createAdultCommand = systemCommand as SystemCommandCreateAdult
+        newFamily.adults.push(createAdult({
+          name: newFamily.adults.length === 0 ? 'お客様' : "ご家族様",
+          sex: newFamily.adults.length === 1 ? 'woman' : "man",
+          age: createAdultCommand.age,
+          peekAge: 52,
+          toPeekRate: 1.02,
           retireAge: 65,
-          lifeEvents: [
-            {
-              name: 'サラリー',
-              cashFlows: createSalaryCashFlows(age, 65, income)
-            },
-            {
-              name: '年金',
-              cashFlows: createPensionCashFlows(age, 65, 7)
-            },
-            {
-              name: '生活費',
-              cashFlows: createLifeCostCashFlows(age, 65, 20)
-            },
-          ],
-        }
+          toRetireRate: 0.92,
+          currentIncome: createAdultCommand.incomePerYearJpy,
+          pension: 7,
+          baseExpence: 15,
+          totalInclude: true,
+        }))
         break;
-      case "create_child":
-        const c2= systemCommand as any
-        const age2 = c2.age as number
-        newFamily.children.push({
-          id: `child${newFamily.children.length + 1}`,
-          age: age2,
-          lifeEvents: [
-            {
-              name: '生活費',
-              cashFlows: createFlatCostCashFlows(age2, age2, 22, 10)
-            },
-            {
-              name: '高校',
-              cashFlows: createFlatCostCashFlows(age2, 15, 17, 5)
-            },
-            {
-              name: '大学',
-              cashFlows: createFlatCostCashFlows(age2, 18, 22, 15)
-            },
+      case "createChild":
+        const createChildCommand = systemCommand as SystemCommandCreateChild
+        newFamily.children.push(createChild({
+          name: 'お子様',
+          sex: newFamily.adults.length === 1 ? 'woman' : "man",
+          age: createChildCommand.age,
+          baseExpence: 5,
+          highSchoolExpence: 5,
+          universityExpence: 15,
+          totalInclude: true,
+        }))
+        break;
+      case "setBankBalance":
+        const setBankBalanceCommand = systemCommand as SystemCommandSetBankBalance
+        const indexBankBalanceCommand = newFamily.assets.findIndex(a => a.params.class === 'bank')
+        const assetBankBalanceCommand = createBankAsset({
+          class: 'bank',
+          interest: 1,
+          opened: false,
+          incomes: [
+            {year: START_YEAR, val: setBankBalanceCommand.balanceJpy},
           ],
         })
+        if (indexBankBalanceCommand < 0) {
+          newFamily.assets.push(assetBankBalanceCommand)
+        } else {
+          newFamily.assets[indexBankBalanceCommand] = assetBankBalanceCommand
+        }
+        break;
+      case "setManagedAssetBalance":
+        const setManagedAssetBalanceCommand = systemCommand as SystemCommandSetManagedAssetBalance
+        const indexSetManagedAssetBalanceCommand = newFamily.assets.findIndex(a => a.params.class === 'managed asset')
+        const assetSetManagedAssetBalanceCommand = createStockAsset({
+          class: 'managed asset',
+          interest: 1.02,
+          opened: false,
+          incomes: [
+            {year: START_YEAR, val: setManagedAssetBalanceCommand.balanceJpy},
+          ],
+        })
+        if (indexSetManagedAssetBalanceCommand < 0) {
+          newFamily.assets.push(assetSetManagedAssetBalanceCommand)
+        } else {
+          newFamily.assets[indexSetManagedAssetBalanceCommand] = assetSetManagedAssetBalanceCommand
+        }
+        break;
+      case "scheduledDeposit":
+        const scheduledDepositCommand = systemCommand as SystemCommandScheduledDeposit
+        const indexScheduledDepositCommand = newFamily.assets.findIndex(a => a.params.class === 'bank')
+        const assetScheduledDepositCommand = indexScheduledDepositCommand < 0 ? createBankAsset({
+          class: 'bank',
+          interest: 1,
+          opened: false,
+          incomes: [
+            {year: START_YEAR, val: 0},
+          ],
+        }) : newFamily.assets[indexScheduledDepositCommand];
+        assetScheduledDepositCommand.cashFlows[scheduledDepositCommand.year] = scheduledDepositCommand.balanceJpy;
+        break;
+      case "updateFamilyExpence":
+        const updateFamilyExpenceCommand = systemCommand as SystemCommandUpdateFamilyExpence
+        const expense = Math.max(updateFamilyExpenceCommand.balanceJpy - family.children.reduce((h, c) => h + c.params.baseExpence, 0), 0)
+        for (const adult of family.adults) {
+          adult.params.baseExpence = Math.ceil(expense / family.adults.length)
+        }
+        break;
+      case "updateFamilyPension":
+        const updateFamilyPensionCommand = systemCommand as SystemCommandUpdateFamilyPension
+        const pension = Math.max(updateFamilyPensionCommand.balanceJpy, 0)
+        for (const adult of family.adults) {
+          adult.params.baseExpence = Math.ceil(pension / family.adults.length)
+        }
         break;
     }
   }
   return newFamily;
+}
+
+const getFamilyCondition = (family: Family): string => {
+  if (family.adults.length == 0) {
+    return ''
+  }
+  const ret: string[] = []
+  for (const adult of family.adults) {
+    ret.push(`・${adult.name}(${adult.age}歳) ご年収 ${adult.params.currentIncome}万円`)
+  }
+  for (const child of family.children) {
+    ret.push(`・${child.name}(${child.age}歳)`)
+  }
+  for (const asset of family.assets) {
+    ret.push(`・${asset.name} 現在 ${asset.cashFlows[START_YEAR] || 0}万円`)
+  }
+  return ret.join("\n")
 }
