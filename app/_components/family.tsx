@@ -21,6 +21,7 @@ import StreamlineEmojisWomanOfficeWorker2 from "@/app/icons/StreamlineEmojisWoma
 import {Slider} from "@nextui-org/slider";
 import {Button} from "@nextui-org/react";
 import {PersonParamsComponent, SliderPopup, SliderPopupProps} from "@/app/_components/params";
+import Link from "next/link";
 
 export const FamilyComponent = () => {
   const [sliderPopupProp, setSliderPopupProp] = useState<SliderPopupProps | undefined>()
@@ -67,6 +68,13 @@ const PersonComponent = ({person, setSliderPopupProp}: Props) => {
     setFamily(newFamily)
   }, [family, person, opened])
 
+  const removeMe = useCallback(() => {
+    const newFamily = {...family}
+    newFamily.adults = newFamily.adults.filter(a => a.id !== person.id);
+    newFamily.children = newFamily.children.filter(a => a.id !== person.id);
+    setFamily(newFamily)
+  }, [family, person, opened])
+
   return (
     <div className="my-3">
       <h2>
@@ -78,6 +86,7 @@ const PersonComponent = ({person, setSliderPopupProp}: Props) => {
         }}>
           <span className="flex items-center text-2xl">
             {getIcon(person)}{person.name}
+            <Link className={'ml-4'} href={'#'} role={'button'} onClick={() => removeMe()}>削除</Link>
           </span>
           <svg className="w-3 h-3 rotate-180 shrink-0" aria-hidden="true"
                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">

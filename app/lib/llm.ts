@@ -39,7 +39,7 @@ const commandsPrompt = `## createAdult
 \`\`\`
 
 ## scheduledDeposit
-退職金など将来の任意の時点で受け取る予定の金銭を設定してください。
+退職金など将来の任意の時点で受け取る予定の金銭を設定してください。（このコマンドは積極的にユーザーにヒアリングせず、ユーザーから修正の要望があったときに使ってください）
 \`\`\`json
 {
   "command": "scheduledDeposit",
@@ -49,7 +49,7 @@ const commandsPrompt = `## createAdult
 \`\`\`
 
 ## updateFamilyExpence
-家族の生活費を修正する場合に、生活費の月額を設定してください。
+家族の生活費を修正する場合に、生活費の月額を設定してください。（このコマンドは積極的にユーザーにヒアリングせず、ユーザーから修正の要望があったときに使ってください）
 \`\`\`json
 {
   "command": "updateFamilyExpence",
@@ -58,7 +58,7 @@ const commandsPrompt = `## createAdult
 \`\`\`
 
 ## updateFamilyPension
-家族の年金を修正する場合に、家族の年金の月額を設定してください。
+家族の年金を修正する場合に、家族の年金の月額を設定してください。（このコマンドは積極的にユーザーにヒアリングせず、ユーザーから修正の要望があったときに使ってください）
 \`\`\`json
 {
   "command": "updateFamilyPension",
@@ -71,7 +71,7 @@ const systemPrompt = `あなたはユーザーの家族構成やライフプラ�
 ユーザーからヒアリングした情報をもとに、回答の先頭で以下のコマンドを出力してください。
 コマンドを出力したあとで、ユーザーに対して一つずつ情報を引き出すように問いかけてください。
 
-※ すべての金額は1万円単位で設定すること。（例：400万円の場合は400を設定）
+※ コマンドに入力するすべての金額の数値は1万円単位で設定すること。（例：400万円の場合は400を設定）（これはユーザーに伝えないこと）
 
 Your response should be in the following format:
 
@@ -85,7 +85,7 @@ export const firstMessage = `こんにちは！
 まずはあなたの年齢と年収を教えて下さい。
 `
 
-export const chatMessage = async (text: string, history: ChatMessages, familyCondition: string): Promise<string> => {
+export const chatMessage = async (text: string, history: ChatMessages, familyCondition: string, prompt: string): Promise<string> => {
   const openai = new OpenAI({
     apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
     dangerouslyAllowBrowser: true,
@@ -98,6 +98,14 @@ export const chatMessage = async (text: string, history: ChatMessages, familyCon
       {
         role: 'system',
         content: `ここまでのヒアリングでシステムに入力されている家族の状況は以下のとおりです。\n${familyCondition}`
+      }
+    )
+  }
+  if (prompt !== '') {
+    messages.push(
+      {
+        role: 'system',
+        content: prompt
       }
     )
   }

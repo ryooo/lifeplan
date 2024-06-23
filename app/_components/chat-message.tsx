@@ -4,7 +4,7 @@ import {useCallback, useContext, useEffect, useRef, useState} from "react";
 import {Textarea} from "@chakra-ui/react";
 import {chatMessage, firstMessage, fixJson} from "@/app/lib/llm";
 import {familyContext} from "@/app/privoders/family";
-import {Family, Sex} from "@/app/lib/type";
+import {calcAssetMigratedCashFlow, calcFamilyCashFlow, Family, Sex, totalAssets} from "@/app/lib/type";
 import {
   createAdult, createAsset, createBankAsset, createChild,
   createFlatCostCashFlows,
@@ -12,7 +12,7 @@ import {
   createPensionCashFlows,
   createSalaryCashFlows, createStockAsset
 } from "@/app/lib/query";
-import {START_YEAR} from "@/app/lib/helper";
+import {START_YEAR, YEARS} from "@/app/lib/helper";
 
 
 type ChatMessageComponentProp = {
@@ -54,7 +54,8 @@ export const ChatComponent = () => {
     setChatMessages(newChatMessages)
 
     setLoading(true)
-    const llmMessage = await chatMessage(textAreaRef.current!.value, chatMessages, getFamilyCondition(family))
+    const [condition, prompt] = getFamilyCondition(family)
+    const llmMessage = await chatMessage(textAreaRef.current!.value, chatMessages, condition, prompt)
     const [systemCommands, userMessae] = await findSystemCommand(llmMessage)
     const newFamily = execSystemCommands(systemCommands, family)
     if (newFamily) {
@@ -271,19 +272,34 @@ const execSystemCommands = (systemCommands: SystemCommand[], family: Family): Fa
   return newFamily;
 }
 
-const getFamilyCondition = (family: Family): string => {
+const getFamilyCondition = (family: Family): [string, string] => {
   if (family.adults.length == 0) {
-    return ''
+    return ['', '']
   }
   const ret: string[] = []
+    ret.push(`■ 家族状況`)
   for (const adult of family.adults) {
     ret.push(`・${adult.name}(${adult.age}歳) ご年収 ${adult.params.currentIncome}万円`)
   }
   for (const child of family.children) {
     ret.push(`・${child.name}(${child.age}歳)`)
   }
+    ret.push(``)
+    ret.push(`■ 資産状況`)
   for (const asset of family.assets) {
     ret.push(`・${asset.name} 現在 ${asset.cashFlows[START_YEAR] || 0}万円`)
   }
-  return ret.join("\n")
+
+  const familyCashFlow = calcFamilyCashFlow(family)
+  calcAssetMigratedCashFlow(family.assets, familyCashFlow)
+  const totals = YEARS.map(y => totalAssets(y, family))
+  const minusYearIndex = totals.findIndex(t => t < 0);
+  if (minusYearIndex >= 0) {
+    ret.push(``)
+    ret.push(`■ 将来、ご家族の資産推移がマイナスになる年`)
+    ret.push(`現在のシミュレーションでは、このご家族は${YEARS[minusYearIndex]}年に資産がマイナスとなってしまいます。`)
+    ret.push(`生活費を節約したり資産運用を行うなどの行動を取る必要があると思われます`)
+    return [ret.join("\n"), '今後のご家族の資産推移のシミュレーション結果を踏まえて、ファイナンシャルプランナーとしてアドバイスがあれば伝えてください。']
+  }
+  return [ret.join("\n"), '']
 }
