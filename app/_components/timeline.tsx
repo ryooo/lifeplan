@@ -1,5 +1,5 @@
 "use client"
-import React, {useContext} from 'react';
+import React, {useContext, useEffect, useState} from 'react';
 import {
   Chart as ChartJS,
   LinearScale,
@@ -51,9 +51,21 @@ ChartJS.register(
 );
 
 export const Timeline = () => {
-  const familyCtx = useContext(familyContext);
-  const familyCashFlow = calcFamilyCashFlow(familyCtx.family)
+  const {family} = useContext(familyContext);
+  const [assetData, setAssetData] = useState<number[]>([])
+  const [incomeData, setIncomeData] = useState<number[]>([])
+  const [outcomeData, setOutcomeData] = useState<number[]>([])
+  const [familyCashFlow, setFamilyCashFlow] = useState(calcFamilyCashFlow(family));
+  useEffect(() => {
+    const newCf = calcFamilyCashFlow(family);
+    setFamilyCashFlow(newCf)
+    console.log(222, family)
+    setAssetData(YEARS.map(y => totalAssets(y, family)))
+    setIncomeData(YEARS.map(y => newCf.income[y]))
+    setOutcomeData(YEARS.map(y => newCf.outcome[y]))
+  }, [family]);
 
+  console.log(1111, outcomeData)
   const data: ChartData<'line'|'bar'> = {
     labels: YEARS,
     datasets: [
@@ -66,7 +78,7 @@ export const Timeline = () => {
         pointStyle: false,
         fill: false,
         tension: 0.3,
-        data: YEARS.map(y => totalAssets(y, familyCtx.family)),
+        data: assetData,
         gradient: {
           borderColor: {
             axis: 'y',
@@ -84,14 +96,14 @@ export const Timeline = () => {
         yAxisID: 'yAxisL',
         label: '収入',
         backgroundColor: INCOME_COLOR,
-        data: YEARS.map(y => familyCashFlow.income[y]),
+        data: incomeData,
       },
       {
         type: 'bar' as const,
         yAxisID: 'yAxisL',
         label: '支出',
         backgroundColor: OUTCOME_COLOR,
-        data: YEARS.map(y => familyCashFlow.outcome[y]),
+        data: outcomeData,
       },
     ],
   };

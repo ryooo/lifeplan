@@ -35,13 +35,8 @@ export const createPensionCashFlows = (age: number, retireAge: number, pension: 
 export const createLifeCostCashFlows = (age: number, retireAge: number | null, baseExpence: number): CashFlows => {
   const cashFlows: CashFlows = {};
   const expence = baseExpence * 12;
-  const retireYear = retireAge ? START_YEAR + (retireAge - age) : -1
   for (let i = START_YEAR; i < END_YEAR; i++) {
-    if (i <= retireYear) {
-      cashFlows[i] = -1 * (expence * 1.2);
-    } else {
-      cashFlows[i] = -1 * expence;
-    }
+    cashFlows[i] = -1 * expence;
   }
   return cashFlows
 }

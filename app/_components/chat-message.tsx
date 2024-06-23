@@ -13,6 +13,7 @@ import {
   createSalaryCashFlows, createStockAsset
 } from "@/app/lib/query";
 import {START_YEAR, YEARS} from "@/app/lib/helper";
+import {setTime} from "@internationalized/date/src/manipulation";
 
 
 type ChatMessageComponentProp = {
@@ -58,6 +59,7 @@ export const ChatComponent = () => {
     const llmMessage = await chatMessage(textAreaRef.current!.value, chatMessages, condition, prompt)
     const [systemCommands, userMessae] = await findSystemCommand(llmMessage)
     const newFamily = execSystemCommands(systemCommands, family)
+    console.log(newFamily, family)
     if (newFamily) {
       setFamily(newFamily)
     }
@@ -67,6 +69,10 @@ export const ChatComponent = () => {
     })
     setChatMessages(newChatMessages)
     setLoading(false)
+    setTimeout(() => {
+      const objDiv = document.getElementById("chatHistory")!;
+      objDiv.scroll({ top: objDiv.scrollHeight, behavior: 'smooth' });
+    }, 100)
   }, [chatMessages, family])
 
   useEffect(() => {
@@ -82,7 +88,7 @@ export const ChatComponent = () => {
     <div className="flex flex-row h-screen w-full">
       <div className="p-2 flex flex-col bg-white">
         <h2 className="text-xl font-bold">Chat</h2>
-        <div className="flex-grow overflow-y-auto">
+        <div className="flex-grow overflow-y-auto" id={'chatHistory'}>
           <div className="space-y-4 pb-4">
             <ChatMessagesComponent chatMessages={chatMessages}/>
           </div>
@@ -255,16 +261,24 @@ const execSystemCommands = (systemCommands: SystemCommand[], family: Family): Fa
         break;
       case "updateFamilyExpence":
         const updateFamilyExpenceCommand = systemCommand as SystemCommandUpdateFamilyExpence
-        const expense = Math.max(updateFamilyExpenceCommand.balanceJpy - family.children.reduce((h, c) => h + c.params.baseExpence, 0), 0)
-        for (const adult of family.adults) {
-          adult.params.baseExpence = Math.ceil(expense / family.adults.length)
+        const expense = Math.max(updateFamilyExpenceCommand.balanceJpy - newFamily.children.reduce((h, c) => h + c.params.baseExpence, 0), 0)
+        for (const adult of newFamily.adults) {
+          adult.params.baseExpence = Math.ceil(expense / newFamily.adults.length)
+          const idx = adult.lifeEvents.findIndex(e => e.name === '生活費')
+          if (idx >= 0) {
+            adult.lifeEvents[idx]!.cashFlows = createLifeCostCashFlows(adult.age, adult.retireAge || null, adult.params.baseExpence)
+          }
         }
         break;
       case "updateFamilyPension":
         const updateFamilyPensionCommand = systemCommand as SystemCommandUpdateFamilyPension
         const pension = Math.max(updateFamilyPensionCommand.balanceJpy, 0)
-        for (const adult of family.adults) {
-          adult.params.baseExpence = Math.ceil(pension / family.adults.length)
+        for (const adult of newFamily.adults) {
+          adult.params.pension = Math.ceil(pension / newFamily.adults.length)
+          const idx = adult.lifeEvents.findIndex(e => e.name === '年金')
+          if (idx >= 0) {
+            adult.lifeEvents[idx]!.cashFlows = createPensionCashFlows(adult.age, adult.retireAge || 65, adult.params.pension)
+          }
         }
         break;
     }
@@ -276,13 +290,16 @@ const getFamilyCondition = (family: Family): [string, string] => {
   if (family.adults.length == 0) {
     return ['', '']
   }
+  let cost = 0;
   const ret: string[] = []
     ret.push(`■ 家族状況`)
   for (const adult of family.adults) {
     ret.push(`・${adult.name}(${adult.age}歳) ご年収 ${adult.params.currentIncome}万円`)
+    cost += adult.params.baseExpence;
   }
   for (const child of family.children) {
     ret.push(`・${child.name}(${child.age}歳)`)
+    cost += child.params.baseExpence;
   }
     ret.push(``)
     ret.push(`■ 資産状況`)
@@ -295,11 +312,11 @@ const getFamilyCondition = (family: Family): [string, string] => {
   const totals = YEARS.map(y => totalAssets(y, family))
   const minusYearIndex = totals.findIndex(t => t < 0);
   if (minusYearIndex >= 0) {
-    ret.push(``)
-    ret.push(`■ 将来、ご家族の資産推移がマイナスになる年`)
-    ret.push(`現在のシミュレーションでは、このご家族は${YEARS[minusYearIndex]}年に資産がマイナスとなってしまいます。`)
-    ret.push(`生活費を節約したり資産運用を行うなどの行動を取る必要があると思われます`)
-    return [ret.join("\n"), '今後のご家族の資産推移のシミュレーション結果を踏まえて、ファイナンシャルプランナーとしてアドバイスがあれば伝えてください。']
+    const prompt: string[] = [];
+    prompt.push(`現在のシミュレーションでは、このご家族は${YEARS[minusYearIndex]}年に資産がマイナスとなってしまいます。`)
+    prompt.push(`生活費を節約したり資産運用を行うなどの行動を取る必要があるので、生活費を抑えるようなアドバイスをしてください。`)
+    prompt.push(`なお、このご家族の現在の生活費は毎月${cost}万円で試算しています。`)
+    return [ret.join("\n"), prompt.join("\n")]
   }
   return [ret.join("\n"), '']
 }

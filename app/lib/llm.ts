@@ -3,7 +3,7 @@ import {ChatMessages} from "@/app/lib/chat";
 import ChatCompletionMessageParam = OpenAI.ChatCompletionMessageParam;
 
 const commandsPrompt = `## createAdult
-大人の家族を追加するときに使用してください。
+大人の家族を追加するときに使用してください。（システムに入力されているご家族の状況と照らし合わせて、大人を追加する必要がある場合のみこのコマンドを発行してください。）
 \`\`\`json
 {
   "command": "createAdult",
@@ -13,6 +13,7 @@ const commandsPrompt = `## createAdult
 \`\`\`
 
 ## createChild
+子供の家族を追加するときに使用してください。（システムに入力されているご家族の状況と照らし合わせて、子供を追加する必要がある場合のみこのコマンドを発行してください。）
 \`\`\`json
 {
   "command": "createChild",
@@ -72,6 +73,7 @@ const systemPrompt = `あなたはユーザーの家族構成やライフプラ�
 コマンドを出力したあとで、ユーザーに対して一つずつ情報を引き出すように問いかけてください。
 
 ※ コマンドに入力するすべての金額の数値は1万円単位で設定すること。（例：400万円の場合は400を設定）（これはユーザーに伝えないこと）
+※ ユーザーが発言した金額の数値で、単位が省略されている場合はすべて日本円と考えること
 
 Your response should be in the following format:
 
